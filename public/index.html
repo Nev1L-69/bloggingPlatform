@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blogging Platform</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .blog {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+    .blog h2 {
+      margin: 0;
+    }
+    .blog p {
+      margin: 5px 0;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #addBlogButton {
+      margin-bottom: 20px;
+    }
+    #blogForm {
+      display: none; /* Hidden by default */
+      margin-bottom: 20px;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    #blogForm input,
+    #blogForm textarea {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #blogForm button[type="submit"] {
+      background-color: #28a745;
+    }
+    #blogForm button[type="submit"]:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+<body>
+  <h1>Blog Posts</h1>
+
+  <!-- Button to toggle the form -->
+  <button id="addBlogButton">Add New Blog</button>
+
+  <!-- Form to create a new blog (hidden by default) -->
+  <form id="blogForm">
+    <input type="text" id="title" placeholder="Title" required>
+    <textarea id="body" placeholder="Body" required></textarea>
+    <input type="text" id="author" placeholder="Author (optional)">
+    <button type="submit">Create Blog</button>
+  </form>
+
+  <div id="blogs"></div>
+
+  <script>
+    // Fetch and display all blog posts
+    async function fetchBlogs() {
+      const response = await fetch('/api/blogs');
+      const blogs = await response.json();
+      const blogsDiv = document.getElementById('blogs');
+      blogsDiv.innerHTML = blogs.map(blog => `
+        <div class="blog">
+          <h2>${blog.title}</h2>
+          <p>${blog.body}</p>
+          <p><em>By ${blog.author}</em></p>
+          <button onclick="deleteBlog('${blog._id}')">Delete</button>
+        </div>
+      `).join('');
+    }
+
+    // Delete a blog post
+    async function deleteBlog(id) {
+      await fetch(`/api/blogs/${id}`, { method: 'DELETE' });
+      fetchBlogs(); // Refresh the list
+    }
+
+    // Handle form submission to create a new blog
+    document.getElementById('blogForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value;
+      const body = document.getElementById('body').value;
+      const author = document.getElementById('author').value || 'Anonymous';
+
+      const response = await fetch('/api/blogs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, body, author }),
+      });
+
+      if (response.ok) {
+        fetchBlogs(); // Refresh the list
+        document.getElementById('blogForm').reset(); // Clear the form
+        toggleForm(); // Hide the form after submission
+      } else {
+        alert('Failed to create blog');
+      }
+    });
+
+    // Toggle the form visibility
+    const form = document.getElementById('blogForm');
+    function toggleForm() {
+      if (form.style.display === 'none' || form.style.display === '') {
+        form.style.display = 'block';
+      } else {
+        form.style.display = 'none';
+      }
+    }
+
+    // Add event listener to the "Add New Blog" button
+    document.getElementById('addBlogButton').addEventListener('click', toggleForm);
+
+    // Load blogs on page load
+    fetchBlogs();
+  </script>
+</body>
+</html>
