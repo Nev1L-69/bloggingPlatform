@@ -66,21 +66,20 @@
 <body>
   <h1>Blog Posts</h1>
 
-  <!-- Button to toggle the form -->
   <button id="addBlogButton">Add New Blog</button>
 
-  <!-- Form to create a new blog (hidden by default) -->
   <form id="blogForm">
+    <input type="hidden" id="blogId" value=""> 
     <input type="text" id="title" placeholder="Title" required>
     <textarea id="body" placeholder="Body" required></textarea>
     <input type="text" id="author" placeholder="Author (optional)">
-    <button type="submit">Create Blog</button>
+    <button type="submit">Save Blog</button>
+    <button type="button" onclick="cancelEdit()">Cancel</button>
   </form>
 
   <div id="blogs"></div>
 
   <script>
-    // Fetch and display all blog posts
     async function fetchBlogs() {
       const response = await fetch('/api/blogs');
       const blogs = await response.json();
@@ -90,6 +89,7 @@
           <h2>${blog.title}</h2>
           <p>${blog.body}</p>
           <p><em>By ${blog.author}</em></p>
+          <button onclick="editBlog('${blog._id}')">Edit</button>
           <button onclick="deleteBlog('${blog._id}')">Delete</button>
         </div>
       `).join('');
@@ -98,19 +98,37 @@
     // Delete a blog post
     async function deleteBlog(id) {
       await fetch(`/api/blogs/${id}`, { method: 'DELETE' });
-      fetchBlogs(); // Refresh the list
+      fetchBlogs(); 
     }
 
-    // Handle form submission to create a new blog
+    // Edit a blog post
+    async function editBlog(id) {
+      const response = await fetch(`/api/blogs/${id}`);
+      const blog = await response.json();
+
+      // Pre-fill the form with the blog data
+      document.getElementById('blogId').value = blog._id;
+      document.getElementById('title').value = blog.title;
+      document.getElementById('body').value = blog.body;
+      document.getElementById('author').value = blog.author;
+
+      toggleForm();
+    }
+
+    // Handle form submission to create/update a blog
     document.getElementById('blogForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const id = document.getElementById('blogId').value;
       const title = document.getElementById('title').value;
       const body = document.getElementById('body').value;
       const author = document.getElementById('author').value || 'Anonymous';
 
-      const response = await fetch('/api/blogs', {
-        method: 'POST',
+      const url = id ? `/api/blogs/${id}` : '/api/blogs';
+      const method = id ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -122,9 +140,15 @@
         document.getElementById('blogForm').reset(); // Clear the form
         toggleForm(); // Hide the form after submission
       } else {
-        alert('Failed to create blog');
+        alert('Failed to save blog');
       }
     });
+
+    // Cancel edit and reset the form
+    function cancelEdit() {
+      document.getElementById('blogForm').reset();
+      toggleForm();
+    }
 
     // Toggle the form visibility
     const form = document.getElementById('blogForm');
@@ -137,7 +161,11 @@
     }
 
     // Add event listener to the "Add New Blog" button
-    document.getElementById('addBlogButton').addEventListener('click', toggleForm);
+    document.getElementById('addBlogButton').addEventListener('click', () => {
+      document.getElementById('blogForm').reset(); // Clear the form
+      document.getElementById('blogId').value = ''; // Reset the hidden ID field
+      toggleForm();
+    });
 
     // Load blogs on page load
     fetchBlogs();
